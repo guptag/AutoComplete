@@ -1,0 +1,6 @@
+Autocomplete demo on over 80k words using Trie and Webworkers.
+
+This sample is only for demo purposes. Please check out the following articles from John Resig's blog before using Tries in javascript.
+
+http://ejohn.org/blog/dictionary-lookups-in-javascript/ 
+http://ejohn.org/blog/javascript-trie-performance-analysis/
