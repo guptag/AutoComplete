@@ -2,6 +2,7 @@
 <title>Autocomplete demo on over 80k words using Trie and Webworkers</title>
 <head>
 	<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.js"></script>
+	<script type="text/javascript" src="autocomplete.js"></script>	
 	<style>
 		input[type="text"], input[type="password"], textarea, select { 
 				outline: none;
@@ -58,7 +59,7 @@
 	<input type="text" id="searchInput" autocomplete="off" placeholder="enter your search term"></input>	
 	<p>
 	<p>
-		<em>This sample is only for educational purposes. Please check out the following articles(<a href="http://ejohn.org/blog/dictionary-lookups-in-javascript/" target="_new">link1</a>, <a href="http://ejohn.org/blog/javascript-trie-performance-analysis/" target="_new">link2</a>) from John Resig's blog before using Tries in javascript.</em>
+		<em>This sample is only for demo purposes. Please check out the following articles(<a href="http://ejohn.org/blog/dictionary-lookups-in-javascript/" target="_new">link1</a>, <a href="http://ejohn.org/blog/javascript-trie-performance-analysis/" target="_new">link2</a>) from John Resig's blog before using Tries in javascript.</em>
 	</p>
 	</p>	
 		Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eu arcu tortor. Suspendisse velit quam, faucibus eu viverra elementum, convallis non erat. Duis faucibus augue et dolor tincidunt cursus. Aliquam erat volutpat. Phasellus venenatis, sapien id aliquet egestas, leo enim vehicula sapien, sed facilisis ligula magna vel arcu. Suspendisse ultricies malesuada vestibulum. Aliquam eu leo in nisi aliquam mollis. Praesent convallis mauris at justo faucibus viverra. Vivamus pharetra nunc vel dui accumsan at molestie nisl ultricies. Donec et convallis lacus. Cras blandit suscipit nulla, posuere porta risus ultricies nec. Cras a erat nec nisi cursus congue. Donec non quam ac orci pellentesque semper eu a quam. Fusce nisl nulla, auctor at ultrices sit amet, accumsan molestie elit. Praesent vehicula lorem sed lorem iaculis a cursus nunc auctor.
@@ -71,304 +72,17 @@
 </div>
 
 <script type="text/javascript">
-//ideal usage - $("#search").autocomplete( {datasource : {url : ""}, onselectcb : fn };
-(function()
-{
-	var w = window;	
-	w.controls  = w.controls || {};	
-	w.controls.$AutoComplete = function()
-	{
-		// private variables
-		var _$input, _dataSrc, _inputHandler;
-		var _this = this;
-		
-		constr(arguments[0]);
-		
-		function constr(p_args)
-		{
-			_$input = $(p_args.id);	
-			_dataSrc = p_args.dataSrc;
-			_inputHandler = new w.comp.$InputHandler(_dataSrc, onResultSet);
-			_$input.wrap('<div class="autocomplete"></div>');
-			attachEvents();
-		}
-		
-		function attachEvents()
-		{
-			_$input.bind("focus.autocomplete blur.autocomplete", toggleFocus);			
-			_$input.bind("keyup.autocomplete", handleKeyup);
-			_$input.bind("keydown.autocomplete", handleKeydown);
-			$(window).bind("unload beforeunload", function()
-			{				
-				_$input.unbind(".autocomplete");
-			});
-		}
-		
-		function toggleFocus(p_ev)
-		{
-			if(p_ev.type == "focus")
-			{
-				_$input.addClass("focus");
-			}
-			else
-			{
-				_$input.removeClass("focus");
-				toggleSuggestions();
-			}
-		}
-		
-		function handleKeyup(p_ev)
-		{
-			var _input = _$input.val();
-			
-			console.log("handleinput " + _input + " " + p_ev.type);				
-			
-			if(_input == "")
-			{				
-				_inputHandler.reset();
-				toggleSuggestions();
-			}
-			else
-			if(p_ev.keyCode == 13) //enter
-			{
-				
-				_inputHandler.reset();
-				var _$activeLi = $("#" + _$input.attr("id") + "_ul li.active");				
-				if(_$activeLi.length == 1)
-				{
-					_$input.val(_$activeLi.text());
-				}
-				toggleSuggestions();
-			}
-			else if(p_ev.keyCode == 8 || (p_ev.keyCode >=65 && p_ev.keyCode <= 90)) //back arrow or alphabets
-			{
-				_inputHandler.add(_input);
-			}
-		}
-		
-		
-		function handleKeydown(p_ev)
-		{
-			var _input = _$input.val();
-			
-			console.log("handleinput " + _input + " " + p_ev.type);		
-			
-			if(p_ev.keyCode == 40) //down
-			{
-				var _$activeLi = $("#" + _$input.attr("id") + "_ul li.active");
-				var _$tobeActive = $("#" + _$input.attr("id") + "_ul li").first();
-				if(_$activeLi.length == 1)
-				{
-					_$activeLi.removeClass("active");
-					
-					var _$next = _$activeLi.next();
-					if(_$next.length == 1)
-					{
-						_$tobeActive = _$next;
-					}
-				}
-				_$tobeActive.addClass("active").focus();
-			}
-			else
-			if(p_ev.keyCode == 38) //up
-			{
-				var _$activeLi = $("#" + _$input.attr("id") + "_ul li.active");	
-				var _$tobeActive = $("#" + _$input.attr("id") + "_ul li").last();				
-				if(_$activeLi.length == 1)
-				{
-					_$activeLi.removeClass("active");
-					
-					var _$prev = _$activeLi.prev();
-					if(_$prev.length == 1)
-					{
-						_$tobeActive = _$prev;
-					}
-				}				
-				_$tobeActive.addClass("active").focus();
-			}			
-		}
-		
-		function onResultSet(p_data)
-		{
-			toggleSuggestions(p_data.results);
-		}
-		
-		function toggleSuggestions(p_suggestions)
-		{
-			// Clean up the dom			
-			$("#" + _$input.attr("id") + "_ul").unbind(".menuevents").remove();
-			
-			// Append the dom with new suggestions
-			if(p_suggestions && p_suggestions.length > 0)
-			{	
-				var _sugDom = $('<ul id=' + _$input.attr("id") + '_ul></ul>')
-									.css({"min-width": _$input.width()})									
-									.bind("mouseover.menuevents mouseout.menuevents", toggleMenuItemFocus);
-									
-				$.each(p_suggestions, function()
-				{
-					_sugDom.append($(["<li>", this, "</li>"].join("")));
-				});				
-				_$input.parent().append(_sugDom);
-			}
-		}
-		
-		function toggleMenuItemFocus(p_ev)
-		{			
-			$("#" + _$input.attr("id") + "_ul li.active").removeClass("active");
-			$(p_ev.srcElement).addClass("active");
-		}
-	};	
-})();
-
-(function()
-{
-	var w=window;
-	w.comp = w.comp || {};
-	w.comp.$InputHandler = function(p_dataSrc, p_cb)
-	{
-		var _this = this;
-		var _cb = p_cb;
-		var _dataSrc = p_dataSrc;
-		var _tokens = [];
-		var _intervalId;
-		
-		_this.add = function(p_str)
-		{
-			_tokens.push(p_str);
-			
-			if(_tokens.length == 1 && !_intervalId)
-			{
-				//console.log(p_str + ": create interval");
-				_intervalId = w.setInterval(processTokens, 100);
-			}
-		}
-		
-		_this.reset = function()
-		{
-			_tokens.length =0;
-			if(_intervalId)
-			{
-				//console.log("clear interval");
-				w.clearInterval(_intervalId);
-				_intervalId = null;
-			}
-		}
-		
-		function processTokens()
-		{
-			if(_tokens.length > 0)
-			{
-				var _recentQuery = _tokens.pop();			
-				var _results = _dataSrc.findMatches(_recentQuery, 20);			
-				_tokens.length = 0;
-				_cb.call(null, {query:_recentQuery, results:_results});				
-			}
-			else
-			{
-				_this.reset();
-			}
-		}
-	}
-	
-})();
-
-(function()
-{
-	var w = window;	
-	w.data  = w.data || {};	
-	w.data.$Trie = function(p_data)
-	{		
-		var _this = this;		
-		
-		constr((arguments[0] && arguments[0].constructor === Array) ? arguments[0] : []);
-		
-		function constr(p_data)
-		{
-			_this.data = p_data;
-			_this.root = {};
-			buildTrie();
-		}	
-		
-		function buildTrie()
-		{			
-			var _index, _count = _this.data.length;
-			for(_index = 0;_index < _count; ++_index)
-			{
-				var _word = _this.data[_index],	_charCount = _word.length;
-				var _charIndex, _root = _this.root;
-				for(_charIndex = 0;_charIndex < _charCount; ++_charIndex)
-				{
-					var _char = _word.charAt(_charIndex);
-					if(!_root[_char])
-					{
-						_root[_char] = {};
-					}					
-					_root = _root[_char];
-				}
-			}			
-		}
-		
-		_this.findMatches = function(p_query, p_maxCount)
-		{
-			var _results = [], _resultStr = "";
-			var _root = this.root, _rootChar;
-			for(var _index = 0; _index < p_query.length; ++_index)
-			{
-				_rootChar = p_query.charAt(_index);
-				_root = _root[_rootChar];				
-				if(!_root)
-				{
-				   return [];
-				}
-			}
-			
-			if(_root)
-			{
-				var _subResults = getResultsForSubtree(_rootChar, _root);
-				for(var i=0;i<_subResults.length;++i)
-				{
-					_results.push(p_query.slice(0, p_query.length - 1) + _subResults[i]);
-				}
-			}
-			
-			return typeof(p_maxCount != undefined && p_maxCount < _results.length) ? _results.slice(0, p_maxCount) : _results;			
-		}
-
-		function getResultsForSubtree(p_rootText, p_root)
-		{
-			var _results = [];			
-			for(var _p in p_root)
-			{
-				if(p_root.hasOwnProperty(_p))
-				{				   
-				   var _tempResults = getResultsForSubtree(_p, p_root[_p]);
-				   for(var i=0;i<_tempResults.length;++i)
-				   {
-					  _results.push(p_rootText + _tempResults[i]);
-				   }
-				}
-			}			
-			return _results.length > 0 ? _results : [p_rootText];
-		}
-	};	
-})();
 
 // bootstrap the code
-var ctrl1, trie;
+var ctrl1, autoCompleteDataSrc;
 (function()
 {	
-	var jqxhr = $.ajax("scrabble.txt")
-				 .done(function(p_data) 
-					  { 						
-						trie = new data.$Trie(p_data.split('\n').slice(1)); //Load the words (remove the first one which is a comment)
-						ctrl1 = new controls.$AutoComplete({id:"#searchInput", dataSrc:trie});						
-					  });
+	//todo - ideal usage - $("#search").autocomplete( {datasource : {url : ""}, onselectcb : fn };
+	autoCompleteDataSrc = new data.$AutoCompleteDataSrc("scrabble.txt");
+    ctrl1 = new controls.$AutoComplete({id:"#searchInput", dataSrc:autoCompleteDataSrc});
+	ctrl1.init();
 				
 })();
-
-
-
 </script>
 </body>
 </html>
