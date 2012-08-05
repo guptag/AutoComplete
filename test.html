@@ -31,7 +31,7 @@
 		
 		.autocomplete > ul
 		{			
-			max-height:500px;		
+			max-height:800px;		
 			border:1px solid lightblue;
 			padding:0;
 			margin:0;
@@ -55,7 +55,7 @@
 </head>
 <body>
 <div id="container">
-	<h2>Autocomplete demo on over 80k words using Trie and Webworkers</h2>
+	<h2>Autocomplete on over 80k words using Trie and Webworkers</h2>
 	<input type="text" id="searchInput" autocomplete="off" placeholder="enter your search term"></input>	
 	<p>
 	<p>
@@ -77,9 +77,8 @@
 var ctrl1, autoCompleteDataSrc;
 (function()
 {	
-	//todo - ideal usage - $("#search").autocomplete( {datasource : {url : ""}, onselectcb : fn };
-	autoCompleteDataSrc = new data.$AutoCompleteDataSrc("scrabble.txt");
-    ctrl1 = new controls.$AutoComplete({id:"#searchInput", dataSrc:autoCompleteDataSrc});
+	//todo - ideal usage - $("#search").autocomplete( {datasource : {url : ""}, onselectcb : fn };	
+    var ctrl1 = new controls.$AutoComplete({id:"#searchInput", dataSrc: new data.$DataHandler("scrabble.txt")});
 	ctrl1.init();
 				
 })();

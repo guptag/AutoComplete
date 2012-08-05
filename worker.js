@@ -10,11 +10,11 @@ self.addEventListener("message", function(p_ev)
 		   try
 		   {
 				self._trie = new self.data.$Trie(_data.pckg.data);		   
-				self.postMessage({"cmd" : "inittrie", "status" : "success"});
+				self.postMessage({"cmd" : _data.cmd, "status" : "success"});
 		   }
 		   catch(e)
 		   {
-				self.postMessage({"cmd" : "inittrie", "status" : "error", "result" : e.message});
+				self.postMessage({"cmd" : _data.cmd, "status" : "error", "result" : e.message});
 		   }
 	    }		
 		
@@ -27,16 +27,16 @@ self.addEventListener("message", function(p_ev)
 			if(_data.pckg.query && _data.pckg.max)
 			{
 				var _results = self._trie.findMatches(_data.pckg.query, _data.pckg.max);
-				self.postMessage({"cmd" : "findmatches", "status" : "success", "result" : _results});
+				self.postMessage({"cmd" : _data.cmd, "status" : "success", "result" : _results});
 			}
 			else
 			{
-				self.postMessage({"cmd" : "findmatches", "status" : "error", "result" : "invalid input"});
+				self.postMessage({"cmd" : _data.cmd, "status" : "error", "result" : "invalid input"});
 			}
 		}
 		else
 		{
-			self.postMessage({"cmd" : "findmatches", "status" : "error", "result" : "Trie not ready yet"});
+			self.postMessage({"cmd" : _data.cmd, "status" : "error", "result" : "Trie not ready yet"});
 		}
 	}	
 }, false);
@@ -101,8 +101,6 @@ self.addEventListener("message", function(p_ev)
 					_results.push(p_query.slice(0, p_query.length - 1) + _subResults[i]);
 				}
 			}
-			
-			//self.postMessage({"cmd" : "findmatches", "status" : "error", "result" : _results.length});
 			
 			return typeof(p_maxCount != undefined && p_maxCount < _results.length) ? _results.slice(0, p_maxCount) : _results;			
 		}

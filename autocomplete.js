@@ -5,7 +5,7 @@
 	w.controls.$AutoComplete = function()
 	{
 		// private variables
-		var _$input, _dataSrc, _inputHandler;
+		var _$input, _dataSrc;
 		var _this = this;
 		
 		constr(arguments[0]);
@@ -19,8 +19,7 @@
 		function constr(p_args)
 		{
 			_$input = $(p_args.id);	
-			_dataSrc = p_args.dataSrc;
-			_inputHandler = new w.comp.$InputHandler(_dataSrc, onResultSet);
+			_dataSrc = p_args.dataSrc;			
 			_$input.wrap('<div class="autocomplete"></div>');			
 		}	
 		
@@ -56,14 +55,14 @@
 			
 			if(_input == "")
 			{				
-				_inputHandler.reset();
+				_dataSrc.clearPendingQueries();
 				toggleSuggestions();
 			}
 			else
 			if(p_ev.keyCode == 13) //enter
 			{
 				
-				_inputHandler.reset();
+				_dataSrc.clearPendingQueries();
 				var _$activeLi = $("#" + _$input.attr("id") + "_ul li.active");				
 				if(_$activeLi.length == 1)
 				{
@@ -73,7 +72,8 @@
 			}
 			else if(p_ev.keyCode == 8 || (p_ev.keyCode >=65 && p_ev.keyCode <= 90)) //back arrow or alphabets
 			{
-				_inputHandler.add(_input);
+				_dataSrc.findMatches(_input)
+						.then(onResultSet);
 			}
 		}
 		
@@ -121,7 +121,8 @@
 		
 		function onResultSet(p_data)
 		{
-			toggleSuggestions(p_data.results);
+			var _result = p_data.status === "success" ? p_data.result : [];								
+			toggleSuggestions(p_data.result);
 		}
 		
 		function toggleSuggestions(p_suggestions)
@@ -156,24 +157,20 @@
 {
 	var w=window;
 	w.data = w.data || {};
-	w.data.$AutoCompleteDataSrc = function(p_srcUrl)
+	w.data.$DataHandler = function(p_srcUrl)
 	{
 		var _this = this;
+		var c_MaxResults = 25;
 		var _srcUrl = p_srcUrl;
 		var _initCb, _webWorker, _isTrieReady, _isInitialized;
 		var _deferred;
+		var _queuedQueries = [];
 				
-		_this.init = function(p_initCb)
+		_this.init = function()
 		{
 			if(!_isInitialized)
 			{
 				_isInitialized = true;
-				
-				// capture the callback
-				if(p_initCb)
-				{
-				   _initCb = p_initCb;
-				}
 				
 				// Make an ajax call and send the data to the webworker for trie generation
 				$.ajax("scrabble.txt")
@@ -187,35 +184,28 @@
 							_webWorker.addEventListener("message", onMessageFromWorker, false);
 							
 							//Send the words to the webworker (remove the first one which is a comment)
-							_webWorker.postMessage({"cmd" : "inittrie", "pckg" : {"data" : p_data.split('\n').slice(1)}});								
+							_webWorker.postMessage({"cmd" : "inittrie", "pckg" : {"data" : p_data.split('\n').slice(1)}});
 						}
 					  });
 			}
 		}
 
-		_this.findMatches = function(p_query, p_maxCount)
+		_this.findMatches = function(p_query)
 		{
-			if(_this.canFindMatches())
+			if(_isTrieReady && !_deferred)
 			{
-			   _webWorker.postMessage({"cmd" : "findmatches", "pckg" : {"query" : p_query, "max" : p_maxCount}});
+			   _webWorker.postMessage({"cmd" : "findmatches", "pckg" : {"query" : p_query, "max" : c_MaxResults}});
 			   _deferred = $.Deferred();
-			   
-			   // return the promise object 
-			   // all the callbacks associated with this promise will be executed when the deferred is resolved
-			   return _deferred.promise();
 			}
-			else			
+			else
 			{
-				//worker is busy processing the old query
-				//return a dummy promise which executes the callback rightaway
-				var dfd = $.Deferred();
-				return dfd.resolve({"status":"cannot query","results":[]}).promise();
+				// queue the query requets (worer thread is churning the previous query)
+				_queuedQueries.push(p_query);				
 			}
-		}
-		
-		_this.canFindMatches = function()
-		{
-			return (_isTrieReady && !_deferred);
+			
+			// return the promise object 
+			// all the callbacks associated with this promise will be executed when the deferred is resolved			   
+			return _deferred.promise();
 		}
 		
 		_this.dispose = function()
@@ -224,87 +214,48 @@
 			_worker.terminate();
 		}
 		
+		_this.clearPendingQueries = function()
+		{
+			_queuedQueries.length =0;
+			if(_deferred)
+			{
+				_deferred = null;
+			}
+		}
+		
 		// handle the message from web worker
 		function onMessageFromWorker(p_ev)
 		{
 			var _data = p_ev.data;
+			var _successStr = "success";
 			
 			if(!(_data && _data.cmd)) return;
 			
-			if(_data.cmd === "inittrie" && 
-			   _data.status == "success")
+			if(_data.cmd === "inittrie" && _data.status == _successStr)
 			{
 				//mark the state
 				_isTrieReady = true;
-				
-				if(_initCb)
-				{
-				  _initCb.call(window);
-				}
 			}
 			else
 			if(_data.cmd === "findmatches")
 			{
-				if(_deferred && _data.status == "success")
+				if(_deferred && _data.status == _successStr)
 				{
-					_deferred.resolve({"status":"success","result":_data.result});
+					// handle the client callbacks
+					_deferred.resolve({"status":_successStr,"result":_data.result});
+					_deferred = null;
+				}
+
+				// handle the pending queries
+				if(_queuedQueries.length > 0)
+				{
+					var _recentQuery = _queuedQueries.pop();
+					_queuedQueries.length = 0;
+					_this.findMatches(_recentQuery);
 				}
 				
-				_deferred = null;
 			}
 		}
 	}
 })();
 
-(function()
-{
-	var w=window;
-	w.comp = w.comp || {};
-	w.comp.$InputHandler = function(p_dataSrc, p_cb)
-	{
-		var _this = this;
-		var _cb = p_cb;
-		var _dataSrc = p_dataSrc;
-		var _tokens = [];
-		var _intervalId;
-		
-		_this.add = function(p_str)
-		{
-			_tokens.push(p_str);
-			
-			if(_tokens.length == 1 && !_intervalId)
-			{
-				//console.log(p_str + ": create interval");
-				_intervalId = w.setInterval(processTokens, 100);
-			}
-		}
-		
-		_this.reset = function()
-		{
-			_tokens.length =0;
-			if(_intervalId)
-			{
-				//console.log("clear interval");
-				w.clearInterval(_intervalId);
-				_intervalId = null;
-			}
-		}
-		
-		function processTokens()
-		{
-			if(_tokens.length > 0)
-			{
-				var _recentQuery = _tokens.pop();			
-				_dataSrc.findMatches(_recentQuery, 20).then(function(p_data){
-					var _results = p_data.status === "success" ? p_data.result : [];
-					_tokens.length = 0;
-					_cb.call(null, {query:_recentQuery, results:_results});			
-				});
-			}
-			else
-			{
-				_this.reset();
-			}
-		}
-	}	
-})();
