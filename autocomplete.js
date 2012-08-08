@@ -134,7 +134,7 @@
 			if(p_suggestions && p_suggestions.length > 0)
 			{	
 				var _sugDom = $('<ul id=' + _$input.attr("id") + '_ul></ul>')
-									.css({"min-width": _$input.width()})									
+									.css({"min-width": _$input.outerWidth() - 2})									
 									.bind("mouseover.menuevents mouseout.menuevents", toggleMenuItemFocus);
 									
 				$.each(p_suggestions, function()
