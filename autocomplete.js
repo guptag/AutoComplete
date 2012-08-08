@@ -12,6 +12,8 @@
 		
 		_this.init = function()
 		{
+			// initialize the data source
+			// this will fireup a worker thread and builds Trie
 			_dataSrc.init();
 			attachEvents();
 		}	
@@ -25,6 +27,7 @@
 		
 		function attachEvents()
 		{
+			// bind all the needed events
 			_$input.bind("focus.autocomplete blur.autocomplete", toggleFocus);			
 			_$input.bind("keyup.autocomplete", handleKeyup);
 			_$input.bind("keydown.autocomplete", handleKeydown);
@@ -51,27 +54,28 @@
 		{
 			var _input = _$input.val();
 			
-			console.log("handleinput " + _input + " " + p_ev.type);				
-			
+			// if text is cleared out - hide the suggestions
 			if(_input == "")
-			{				
+			{	
 				_dataSrc.clearPendingQueries();
 				toggleSuggestions();
 			}
 			else
-			if(p_ev.keyCode == 13) //enter
-			{
-				
+			if(p_ev.keyCode == 13) //enter key
+			{				
 				_dataSrc.clearPendingQueries();
 				var _$activeLi = $("#" + _$input.attr("id") + "_ul li.active");				
 				if(_$activeLi.length == 1)
 				{
+					// if an active list element exists, enter it's value in the textbox
 					_$input.val(_$activeLi.text());
 				}
 				toggleSuggestions();
 			}
 			else if(p_ev.keyCode == 8 || (p_ev.keyCode >=65 && p_ev.keyCode <= 90)) //back arrow or alphabets
-			{
+			{				
+				// findMatches is an async api which returns promise object (instead of the final result)
+				// attach the callback to the promise object using .then
 				_dataSrc.findMatches(_input)
 						.then(onResultSet);
 			}
@@ -82,10 +86,10 @@
 		{
 			var _input = _$input.val();
 			
-			console.log("handleinput " + _input + " " + p_ev.type);		
-			
-			if(p_ev.keyCode == 40) //down
+			if(p_ev.keyCode == 40) //down key
 			{
+				// scroll down the list of suggestions
+				// start with the first element if the selection reaches to the end
 				var _$activeLi = $("#" + _$input.attr("id") + "_ul li.active");
 				var _$tobeActive = $("#" + _$input.attr("id") + "_ul li").first();
 				if(_$activeLi.length == 1)
@@ -101,8 +105,10 @@
 				_$tobeActive.addClass("active").focus();
 			}
 			else
-			if(p_ev.keyCode == 38) //up
+			if(p_ev.keyCode == 38) //up key
 			{
+				// scroll up the list of suggestions
+				// start with the last element if the selection reaches to the top
 				var _$activeLi = $("#" + _$input.attr("id") + "_ul li.active");	
 				var _$tobeActive = $("#" + _$input.attr("id") + "_ul li").last();				
 				if(_$activeLi.length == 1)
@@ -121,6 +127,7 @@
 		
 		function onResultSet(p_data)
 		{
+			// build the suggestion for the result
 			var _result = p_data.status === "success" ? p_data.result : [];								
 			toggleSuggestions(p_data.result);
 		}
@@ -143,10 +150,11 @@
 				});				
 				_$input.parent().append(_sugDom);
 			}
-		}
+		}		
 		
 		function toggleMenuItemFocus(p_ev)
 		{			
+			// mouseover, mouseout events on the suggestion list - change the highlight
 			$("#" + _$input.attr("id") + "_ul li.active").removeClass("active");
 			$(p_ev.srcElement).addClass("active");
 		}
@@ -194,6 +202,7 @@
 		{
 			if(_isTrieReady && !_deferred)
 			{
+			   // send a message to worker thread to get the matches from the query (for the text entered so far)
 			   _webWorker.postMessage({"cmd" : "findmatches", "pckg" : {"query" : p_query, "max" : c_MaxResults}});
 			   _deferred = $.Deferred();
 			}

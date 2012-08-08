@@ -3,6 +3,12 @@ self.addEventListener("message", function(p_ev)
 	var  _data = p_ev.data;
 	if (!(_data && _data.cmd && _data.pckg)) return;
 	
+	// helper method to post the message to UI thread
+	var _postMessage = function(p_cmd, p_status, p_result)
+					   {
+						  self.postMessage({"cmd" : p_cmd, "status" : p_status, "result" : p_result});
+					   }
+	
 	if(_data.cmd == "inittrie")
 	{
 		if(!self._trie)
@@ -10,11 +16,11 @@ self.addEventListener("message", function(p_ev)
 		   try
 		   {
 				self._trie = new self.data.$Trie(_data.pckg.data);		   
-				self.postMessage({"cmd" : _data.cmd, "status" : "success"});
+				_postMessage(_data.cmd, "success");
 		   }
 		   catch(e)
 		   {
-				self.postMessage({"cmd" : _data.cmd, "status" : "error", "result" : e.message});
+				_postMessage(_data.cmd, "error", e.message);
 		   }
 	    }		
 		
@@ -27,16 +33,16 @@ self.addEventListener("message", function(p_ev)
 			if(_data.pckg.query && _data.pckg.max)
 			{
 				var _results = self._trie.findMatches(_data.pckg.query, _data.pckg.max);
-				self.postMessage({"cmd" : _data.cmd, "status" : "success", "result" : _results});
+				_postMessage(_data.cmd, "success", _results);
 			}
 			else
 			{
-				self.postMessage({"cmd" : _data.cmd, "status" : "error", "result" : "invalid input"});
+				_postMessage(_data.cmd, "error", "invalid input");
 			}
 		}
 		else
 		{
-			self.postMessage({"cmd" : _data.cmd, "status" : "error", "result" : "Trie not ready yet"});
+			_postMessage(_data.cmd, "error", "trie not ready yet");
 		}
 	}	
 }, false);
@@ -51,6 +57,7 @@ self.addEventListener("message", function(p_ev)
 	{		
 		var _this = this;		
 		
+		// capture the argument and build the Trie
 		constr((arguments[0] && arguments[0].constructor === Array) ? arguments[0] : []);
 		
 		function constr(p_data)
@@ -61,12 +68,15 @@ self.addEventListener("message", function(p_ev)
 		}	
 		
 		function buildTrie()
-		{			
-			var _index, _count = _this.data.length;
+		{	
+			// build the trie structure for the input array
+			var _index, _count = _this.data.length;			
 			for(_index = 0;_index < _count; ++_index)
 			{
 				var _word = _this.data[_index],	_charCount = _word.length;
 				var _charIndex, _root = _this.root;
+				
+				// for each character in the word, create a chain of nodes from the root
 				for(_charIndex = 0;_charIndex < _charCount; ++_charIndex)
 				{
 					var _char = _word.charAt(_charIndex);
@@ -81,8 +91,11 @@ self.addEventListener("message", function(p_ev)
 		
 		_this.findMatches = function(p_query, p_maxCount)
 		{
+			//find all the words in the Trie that starts with p_query ("ba" -> "bat", "balm", "bad", "badge"....)
 			var _results = [], _resultStr = "";
 			var _root = this.root, _rootChar;
+			
+			// go down the tree to find a root node which matches the p_query
 			for(var _index = 0; _index < p_query.length; ++_index)
 			{
 				_rootChar = p_query.charAt(_index);
@@ -93,6 +106,7 @@ self.addEventListener("message", function(p_ev)
 				}
 			}
 			
+			// if such root exists - find all the words from this root (traverse the sub-tree using DFS)
 			if(_root)
 			{
 				var _subResults = getResultsForSubtree(_rootChar, _root);
@@ -107,6 +121,7 @@ self.addEventListener("message", function(p_ev)
 
 		function getResultsForSubtree(p_rootText, p_root)
 		{
+			// find all the words from p_rootText (traverse all the nodes from this root using DFS)
 			var _results = [];			
 			for(var _p in p_root)
 			{
