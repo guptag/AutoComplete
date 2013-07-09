@@ -1,4 +1,4 @@
-Autocomplete on over 80k words using Trie, Jquery's Deferred/Promise api and Webworkers.
+Autocomplete on a dataset of 80,000 words using Webworkers, jquery's Deferred/Promise api and trie data structure.
 
 This demo showcases the power of webworkers in building a responsive UI. Browser stays super responsive even when constantly querying against a large dataset of words. 
 
