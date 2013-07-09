@@ -1,0 +1,113 @@
+<html>
+<title>Autocomplete demo on over 80k words using Trie and Webworkers</title>
+<head>
+	<style>
+		body
+		{
+			margin:0;
+			padding:10px;
+			font-family: 'proxima-nova',sans-serif;			
+			font-size:1em;
+		}
+		
+		h2
+		{
+			font-family: "freight-sans-pro",sans-serif;
+			font-size:1em;
+		}
+		
+		input[type="text"], input[type="password"], textarea, select { 
+			outline: none;
+		}
+		
+		p
+		{
+			font-size:0.9em;
+			line-height:1.7em;
+		}
+
+		#container
+		{
+			padding: 10px 25px;		  
+		}
+		
+		#searchInput
+		{
+			width:600px;
+			height:35px;
+			padding:5px;
+			font-size:15px;
+		}
+		
+		.autocomplete
+		{
+			position:relative;			
+		}
+		
+		.autocomplete > input.focus
+		{
+			border:1px solid lightblue;
+		}
+		
+		.autocomplete > ul
+		{			
+			max-height:800px;		
+			border:1px solid lightblue;
+			padding:0;
+			margin:0;
+			background-color:white;
+			position:absolute;
+		}
+		
+		.autocomplete > ul > li
+		{
+			list-style-type:none;
+			padding:1px 5px;
+			margin:2px;
+		}
+		
+		.autocomplete > ul > li.active
+		{
+			background-color:gray;
+			color:white;
+		}
+	</style>
+</head>
+<body>
+<div id="container">
+	<h2>Autocomplete on over 80k words using Tries, Webworkers and jquery's Deferred/Promise api</h2>
+	<input type="text" id="searchInput" autocomplete="off" placeholder="enter the search term"></input>	
+	<p>
+	<p>
+		This sample leverages HTML5 webworkers api to build and query an internal trie data structure (for faster lookups) on a large dataset of 80K+ words.  jQuery's deferred/promise api comes in handy to coordinate the callbacks from the worker thread. Browser stays super responsive even when constantly querying against a large dataset.   
+	</p>
+	<p>
+		<em>Please check out the following articles(<a href="http://ejohn.org/blog/dictionary-lookups-in-javascript/" target="_new">link1</a>, <a href="http://ejohn.org/blog/javascript-trie-performance-analysis/" target="_new">link2</a>) from John Resig's blog before using Tries in javascript. While the blog didn't discuss the performance impact in the context of webworkers, it provides valuable insight on how to measure the performance/memory impact.</em>
+	</p>
+	<p style="color:gray;">	
+		Lorem ipsum dolor sit amet, consectetur adipiscing elit. Pellentesque eu arcu tortor. Suspendisse velit quam, faucibus eu viverra elementum, convallis non erat. Duis faucibus augue et dolor tincidunt cursus. Aliquam erat volutpat. Phasellus venenatis, sapien id aliquet egestas, leo enim vehicula sapien, sed facilisis ligula magna vel arcu. Suspendisse ultricies malesuada vestibulum. Aliquam eu leo in nisi aliquam mollis. Praesent convallis mauris at justo faucibus viverra. Vivamus pharetra nunc vel dui accumsan at molestie nisl ultricies. Donec et convallis lacus. Cras blandit suscipit nulla, posuere porta risus ultricies nec. Cras a erat nec nisi cursus congue. Donec non quam ac orci pellentesque semper eu a quam. Fusce nisl nulla, auctor at ultrices sit amet, accumsan molestie elit. Praesent vehicula lorem sed lorem iaculis a cursus nunc auctor.
+
+		Aliquam erat volutpat. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Aliquam tristique diam non ligula euismod lobortis. Donec sed facilisis est. Ut eget lacinia justo. Vivamus ac mauris arcu, sit amet volutpat orci. Praesent sapien nulla, aliquam vitae tristique sit amet, mattis nec odio. Ut sed tempor lectus. Nunc sit amet ante ac purus auctor commodo in sit amet mi. Aenean vel semper turpis. Integer pulvinar, orci eleifend rutrum viverra, ligula elit varius leo, sit amet auctor metus tortor non justo. Vestibulum aliquam sodales arcu vitae ornare. Morbi commodo accumsan nibh, fringilla sagittis est molestie sit amet. Sed vulputate, odio sed imperdiet condimentum, eros diam pulvinar lacus, vitae mattis nisl arcu vel libero.
+
+		Mauris nec purus quis turpis vehicula convallis vitae a lorem. Pellentesque feugiat augue ut elit posuere congue. Proin gravida elit quis purus facilisis a facilisis libero dictum. Aliquam gravida enim sem. Nam magna sapien, aliquam non cursus scelerisque, facilisis ut turpis. Etiam nec eros vitae dui euismod accumsan. Suspendisse malesuada commodo vulputate.
+	</p>
+	<div id="log" style="width:600px;"></div>	
+</div>
+
+<script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.7.2/jquery.js"></script>
+<script type="text/javascript" src="autocomplete.js"></script>	
+	
+<script type="text/javascript">
+
+// bootstrap the code
+var ctrl1, autoCompleteDataSrc;
+(function()
+{	
+	//todo - ideal usage - $("#search").autocomplete( {datasource : {url : ""}, onselectcb : fn };	
+    var ctrl1 = new controls.$AutoComplete({id:"#searchInput", dataSrc: new data.$DataHandler("scrabble.txt")});
+	ctrl1.init();
+				
+})();
+</script>
+</body>
+</html>

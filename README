@@ -1,0 +1,8 @@
+Autocomplete on over 80k words using Trie, Jquery's Deferred/Promise api and Webworkers.
+
+This demo showcases the power of webworkers in building a responsive UI. Browser stays super responsive even when constantly querying against a large dataset. 
+
+Also, please check out the following articles from John Resig's blog before using Tries in real world scenarios. While the blog discusses the performance impact in the normal scenarios (not in the context of webworkers), it provides a valuable insight into measuring the performance/memory impact.
+
+http://ejohn.org/blog/dictionary-lookups-in-javascript/ 
+http://ejohn.org/blog/javascript-trie-performance-analysis/
