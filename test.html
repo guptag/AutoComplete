@@ -83,7 +83,7 @@
 	<h2>Autocomplete on a dataset of 80,000 words using Webworkers, jquery's Deferred/Promise api and trie data structure</h2>
 	<input type="text" id="searchInput" autocomplete="off" placeholder="enter the search term"></input>	
 	<p class="notice">
-		IE9 doesn't support Web Workers. Please try out this demo in Chrome or FF.'
+		IE9 doesn't support Web Workers. Please try out this demo in Chrome or FF.
 	</p>
 	<p>
 		This sample leverages HTML5 webworkers api to build and query an internal trie data structure (for faster lookups) on a large dataset of 80K+ words.  jQuery's deferred/promise api comes in handy to coordinate the callbacks from the worker thread. Browser stays super responsive even when constantly querying against a large dataset.   
